@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "rest_auth.registration",
     "accounts",
+
+    "posts",
 ]
 
 SITE_ID = 1
