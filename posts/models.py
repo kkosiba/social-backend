@@ -10,3 +10,12 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     likes_count = models.IntegerField(default=0)
     comments_count = models.IntegerField(default=0)
+
+    def __str__(self):
+        return (
+            str(self.pk)
+            + ": "
+            + str(self.user.first_name)
+            + " "
+            + str(self.user.last_name)
+        )
