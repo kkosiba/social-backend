@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
 
 
 class CustomUserManager(BaseUserManager):
@@ -53,3 +54,37 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+# Profiles
+
+
+def user_id(instance, filename):
+    """Callable for upload_to argument in picture attribute below"""
+    return f"user_{instance.user.id}/{filename}"
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    picture = models.ImageField(upload_to=user_id, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    bio = models.TextField(max_length=500, null=True, blank=True)
+    website = models.CharField(max_length=255, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.get_full_name()}"
+
+
+# Signals
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+
+def save_user_profile(sender, instance, **kwargs):
+    instance.profile.save()
+
+
+post_save.connect(create_user_profile, sender=CustomUser)
+post_save.connect(save_user_profile, sender=CustomUser)

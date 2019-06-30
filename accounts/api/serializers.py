@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_auth.serializers import LoginSerializer
+from rest_auth.serializers import LoginSerializer, UserDetailsSerializer
 
 try:
     from allauth.utils import email_address_exists
@@ -10,12 +10,6 @@ except ImportError:
     raise ImportError("allauth needs to be added to INSTALLED_APPS.")
 
 User = get_user_model()
-
-
-class CustomUserDetailsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ("id", "first_name", "last_name", "email")
 
 
 class CustomLoginSerializer(LoginSerializer):
@@ -67,3 +61,52 @@ class CustomRegisterSerializer(serializers.Serializer):
         adapter.save_user(request, user, self)
         setup_user_email(request, user, [])
         return user
+
+
+# Profiles
+class CustomUserDetailsSerializer(serializers.ModelSerializer):
+    """Custom user detail serializer with profile information"""
+
+    picture = serializers.CharField(source="profile.picture", allow_null=True)
+    date_of_birth = serializers.DateField(
+        source="profile.date_of_birth", allow_null=True
+    )
+    bio = serializers.CharField(source="profile.bio", allow_blank=True)
+    website = serializers.CharField(source="profile.website", allow_blank=True)
+    location = serializers.CharField(source="profile.location", allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "picture",
+            "date_of_birth",
+            "bio",
+            "website",
+            "location",
+        )
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop("profile", {})
+
+        picture = profile_data.get("picture")
+        date_of_birth = profile_data.get("date_of_birth")
+        bio = profile_data.get("bio")
+        website = profile_data.get("website")
+        location = profile_data.get("location")
+
+        instance = super().update(instance, validated_data)
+
+        # get and update user profile
+        profile = instance.profile
+        if profile_data:
+            profile.picture = picture
+            profile.date_of_birth = date_of_birth
+            profile.bio = bio
+            profile.website = website
+            profile.location = location
+            profile.save()
+        return instance
